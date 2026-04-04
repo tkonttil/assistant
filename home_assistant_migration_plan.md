@@ -21,7 +21,7 @@ home_assistant_migration/
 │   ├── __init__.py
 │   └── test_models.py      # Unit tests for data models
 ├── config/
-│   └── config.yaml         # Configuration for API and storage
+│   └── config.toml         # Configuration for API and storage
 └── migration/
     ├── current/            # Current setup (read-only)
     │   ├── rooms/           # Current room configurations
@@ -32,8 +32,8 @@ home_assistant_migration/
     │   ├── devices/         # Desired device configurations
     │   └── automations/      # Desired automation configurations
     └── migrations/          # Migration scripts
-        ├── 001_initial_setup.yaml  # Initial migration
-        ├── 002_add_new_devices.yaml  # Subsequent migrations
+        ├── 001_initial_setup.toml  # Initial migration
+        ├── 002_add_new_devices.toml  # Subsequent migrations
         └── ...
 ```
 
@@ -100,19 +100,36 @@ Define Pydantic models for:
   11. Track applied migrations in the SQLite database to ensure proper sequencing and avoid reapplying.
   12. Provide tools to merge multiple migration steps into a single migration script for replication or deployment purposes.
 
-### 8. Configuration (`config.yaml`)
-- Store API credentials and settings:
-  ```yaml
-  home_assistant:
-    url: "http://homeassistant.local:8123"
-    token: "YOUR_LONG_LIVED_ACCESS_TOKEN"
-  storage:
-    path: "./migration"  # Path for migration data
-    format: "yaml"       # Output format (yaml, json, or csv)
-  naming:
-    use_llm: true          # Use LLM for naming suggestions
-    llm_model: "gpt-4"     # LLM model to use
+### 8. Configuration (`config.toml`)
+- Store non-sensitive settings:
+  ```toml
+  [home_assistant]
+  url = "http://homeassistant.local:8123"
+
+  [storage]
+  path = "./migration"  # Path for migration data
+  format = "toml"       # Output format (toml, json, or csv)
+
+  [naming]
+  use_llm = true          # Use LLM for naming suggestions
+  llm_model = "gpt-4"     # LLM model to use
   ```
+- **Secure Credential Storage**:
+  - Use environment variables or a secure secrets management tool (e.g., `python-dotenv`, `keyring`, or a dedicated secrets manager) to store sensitive credentials like `HASS_TOKEN` and LLM API keys.
+  - Example `.env` file:
+    ```env
+    HASS_TOKEN=your_long_lived_access_token
+    OPENAI_API_KEY=your_openai_api_key
+    ```
+  - Load credentials in your application using:
+    ```python
+    from dotenv import load_dotenv
+    import os
+    
+    load_dotenv()  # Load environment variables from .env file
+    hass_token = os.getenv("HASS_TOKEN")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    ```
 
 ## Workflow
 
