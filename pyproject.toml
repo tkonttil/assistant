@@ -16,5 +16,29 @@ toml = "^0.10.2"
 pytest = "^8.3.3"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core", "setuptools>=61.0.0", "wheel"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools]
+packages = ["home_assistant_migration"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+home_assistant_migration = ["*.py"]
+
+[project.scripts]
+migration-setup = "home_assistant_migration.simple_migration:SimpleMigration.step1_setup"
+migration-compute = "home_assistant_migration.simple_migration:SimpleMigration.step2_compute"
+migration-apply = "home_assistant_migration.simple_migration:SimpleMigration.step3_apply"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+
+[tool.isort]
+profile = "black"
+line_length = 88

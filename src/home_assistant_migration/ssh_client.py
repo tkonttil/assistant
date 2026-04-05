@@ -30,18 +30,18 @@ class SSHClient:
         self.ssh_key_path = os.getenv("HASS_SSH_KEY_PATH")
         self.config_dir = os.getenv("HASS_CONFIG_DIR", "/config")
         
-        # Docker configuration (for local development)
+        # Docker configuration (preferred method)
         self.use_docker = os.getenv("HASS_USE_DOCKER", "true").lower() == "true"
         self.docker_container = os.getenv("HASS_DOCKER_CONTAINER", "homeassistant")
         
-        # Validate configuration
+        # Validate configuration (Docker is preferred)
         if self.use_docker:
             self._validate_docker_setup()
         else:
             self._validate_ssh_setup()
 
     def _validate_docker_setup(self):
-        """Validate Docker setup."""
+        """Validate Docker setup (preferred method)."""
         try:
             # Check if Docker is available
             result = subprocess.run(["docker", "ps"], capture_output=True, text=True)
@@ -200,7 +200,7 @@ class SSHClient:
     def _deploy_docker_file(self, local_path: str, remote_path: str):
         """Deploy a file to the Docker container."""
         try:
-            # Use docker cp to copy the file
+            # Use docker cp to copy the file (container should already be stopped)
             full_remote_path = f"{self.docker_container}:{remote_path}"
             subprocess.run(["docker", "cp", local_path, full_remote_path], check=True)
             
@@ -252,8 +252,13 @@ class SSHClient:
     def _restart_docker_home_assistant(self):
         """Restart Home Assistant in the Docker container."""
         try:
-            # Restart the container
-            subprocess.run(["docker", "restart", self.docker_container], check=True)
+            # Stop the container first
+            print("   🛑 Stopping Docker container...")
+            subprocess.run(["docker", "stop", self.docker_container], check=True)
+            
+            # Start the container again
+            print("   🔄 Starting Docker container...")
+            subprocess.run(["docker", "start", self.docker_container], check=True)
             
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Docker restart failed: {e.stderr}") from e
@@ -426,9 +431,13 @@ class SSHClient:
             raise RuntimeError(f"Failed to fetch configuration files: {e}") from e
     
     def copy_storage_directory(self, local_dest_path: str):
-        """Copy the entire .storage directory from Home Assistant."""
+        """Copy the entire .storage directory from Home Assistant (Docker preferred)."""
         try:
             if self.use_docker:
+                # Stop the container to ensure file consistency
+                print("   🛑 Stopping Docker container for safe file copy...")
+                subprocess.run(["docker", "stop", self.docker_container], check=True)
+                
                 # Copy the entire .storage directory from Docker container
                 # Note: docker cp creates the target directory, so we copy to a temp location first
                 temp_copy_path = f"{local_dest_path}.temp"
@@ -460,6 +469,8 @@ class SSHClient:
                 else:
                     # Fallback to direct copy if structure is different
                     shutil.move(temp_copy_path, local_dest_path)
+                
+                print("   ⏸️  Docker container left stopped for file modifications")
             else:
                 # For SSH, we would need to use scp or rsync
                 raise NotImplementedError("SSH storage directory copy not implemented yet")

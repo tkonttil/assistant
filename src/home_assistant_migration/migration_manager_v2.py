@@ -353,23 +353,32 @@ class MigrationManagerV2:
             print("⚠️  Warning: Some files are invalid. Upload aborted.")
             return validation_results
         
-        # Upload areas
-        areas_uploaded = self._upload_areas()
+        # Stop container for safe file operations
+        print("   🛑 Stopping Docker container for safe file uploads...")
+        import subprocess
+        subprocess.run(["docker", "stop", self.client.docker_container], check=True)
         
-        # Upload devices
-        devices_uploaded = self._upload_devices()
-        
-        # Upload entities
-        entities_uploaded = self._upload_entities()
-        
-        # Upload automations
-        automations_uploaded = self._upload_automations()
-        
-        # Restart Home Assistant
-        self.client.restart_home_assistant()
-        
-        # Update current setup
-        self.download_current_setup()
+        try:
+            # Upload areas
+            areas_uploaded = self._upload_areas()
+            
+            # Upload devices
+            devices_uploaded = self._upload_devices()
+            
+            # Upload entities
+            entities_uploaded = self._upload_entities()
+            
+            # Upload automations
+            automations_uploaded = self._upload_automations()
+            
+            print("   🔄 Starting Docker container with new configuration...")
+            subprocess.run(["docker", "start", self.client.docker_container], check=True)
+            
+        except Exception as e:
+            # Make sure container is restarted even if upload fails
+            print("   🔄 Restarting Docker container due to upload error...")
+            subprocess.run(["docker", "start", self.client.docker_container], check=True)
+            raise e
         
         return {
             "validation": validation_results,
@@ -570,6 +579,13 @@ class MigrationManagerV2:
                 shutil.copy2(src_path, f"{self.output_dir}/{yaml_file}")
                 copied_yaml += 1
                 print(f"   ✅ Copied {yaml_file} from input")
+        
+        # Copy customization file if it exists in desired
+        customize_src = f"{self.desired_dir}/customize.yaml"
+        if os.path.exists(customize_src):
+            shutil.copy2(customize_src, f"{self.output_dir}/customize.yaml")
+            print(f"   ✅ Copied customize.yaml with entity customizations")
+            copied_yaml += 1
         
         # For apply_migrations_to_create_output, we want the output to reflect the desired state
         # Since desired already contains all the changes, we can simply copy from desired
@@ -1372,6 +1388,20 @@ class MigrationManagerV2:
 
     def _upload_areas(self) -> int:
         """Upload areas to Home Assistant."""
+        # First try to use the prepared output registry if it exists
+        output_registry_path = f"{self.output_dir}/.storage/core.area_registry"
+        if os.path.exists(output_registry_path):
+            # Use the pre-prepared registry from output directory
+            remote_path = f"{self.client.config_dir}/.storage/core.area_registry"
+            self.client.deploy_file(output_registry_path, remote_path)
+            
+            # Count areas from the output registry
+            import json
+            with open(output_registry_path, 'r') as f:
+                reg = json.load(f)
+            return len(reg['data']['areas'])
+        
+        # Fallback to original method if output registry doesn't exist
         areas_dir = f"{self.current_dir}/areas"
         if not os.path.exists(areas_dir):
             return 0
@@ -1383,15 +1413,29 @@ class MigrationManagerV2:
                 with open(f"{areas_dir}/{file}", 'r') as f:
                     areas.append(json.load(f))
         
-        # Create area registry
+        # Load original registry to preserve structure
+        original_registry = {}
+        try:
+            with open(f"{self.input_dir}/.storage/core.area_registry", 'r') as f:
+                original_registry = json.load(f)
+        except:
+            pass
+        
+        # Create area registry preserving original structure
         area_registry = {
-            "version": 1,
-            "minor_version": 9,
+            "version": original_registry.get("version", 1),
+            "minor_version": original_registry.get("minor_version", 9),
             "key": "core.area_registry",
             "data": {
                 "areas": areas
             }
         }
+        
+        # Preserve any additional data from original registry
+        if "data" in original_registry:
+            for key, value in original_registry["data"].items():
+                if key != "areas":
+                    area_registry["data"][key] = value
         
         # Create output directory
         os.makedirs(self.output_dir, exist_ok=True)
@@ -1410,6 +1454,20 @@ class MigrationManagerV2:
 
     def _upload_devices(self) -> int:
         """Upload devices to Home Assistant."""
+        # First try to use the prepared output registry if it exists
+        output_registry_path = f"{self.output_dir}/.storage/core.device_registry"
+        if os.path.exists(output_registry_path):
+            # Use the pre-prepared registry from output directory
+            remote_path = f"{self.client.config_dir}/.storage/core.device_registry"
+            self.client.deploy_file(output_registry_path, remote_path)
+            
+            # Count devices from the output registry
+            import json
+            with open(output_registry_path, 'r') as f:
+                reg = json.load(f)
+            return len(reg['data']['devices'])
+        
+        # Fallback to original method if output registry doesn't exist
         devices_dir = f"{self.current_dir}/devices"
         if not os.path.exists(devices_dir):
             return 0
@@ -1421,15 +1479,29 @@ class MigrationManagerV2:
                 with open(f"{devices_dir}/{file}", 'r') as f:
                     devices.append(json.load(f))
         
-        # Create device registry
+        # Load original registry to preserve structure
+        original_registry = {}
+        try:
+            with open(f"{self.input_dir}/.storage/core.device_registry", 'r') as f:
+                original_registry = json.load(f)
+        except:
+            pass
+        
+        # Create device registry preserving original structure
         device_registry = {
-            "version": 1,
-            "minor_version": 9,
+            "version": original_registry.get("version", 1),
+            "minor_version": original_registry.get("minor_version", 9),
             "key": "core.device_registry",
             "data": {
                 "devices": devices
             }
         }
+        
+        # Preserve any additional data from original registry
+        if "data" in original_registry:
+            for key, value in original_registry["data"].items():
+                if key != "devices":
+                    device_registry["data"][key] = value
         
         # Create output directory
         os.makedirs(self.output_dir, exist_ok=True)
@@ -1448,6 +1520,20 @@ class MigrationManagerV2:
 
     def _upload_entities(self) -> int:
         """Upload entities to Home Assistant."""
+        # First try to use the prepared output registry if it exists
+        output_registry_path = f"{self.output_dir}/.storage/core.entity_registry"
+        if os.path.exists(output_registry_path):
+            # Use the pre-prepared registry from output directory
+            remote_path = f"{self.client.config_dir}/.storage/core.entity_registry"
+            self.client.deploy_file(output_registry_path, remote_path)
+            
+            # Count entities from the output registry
+            import json
+            with open(output_registry_path, 'r') as f:
+                reg = json.load(f)
+            return len(reg['data']['entities'])
+        
+        # Fallback to original method if output registry doesn't exist
         entities_dir = f"{self.current_dir}/entities"
         if not os.path.exists(entities_dir):
             return 0
@@ -1459,15 +1545,29 @@ class MigrationManagerV2:
                 with open(f"{entities_dir}/{file}", 'r') as f:
                     entities.append(json.load(f))
         
-        # Create entity registry
+        # Load original registry to preserve structure
+        original_registry = {}
+        try:
+            with open(f"{self.input_dir}/.storage/core.entity_registry", 'r') as f:
+                original_registry = json.load(f)
+        except:
+            pass
+        
+        # Create entity registry preserving original structure
         entity_registry = {
-            "version": 1,
-            "minor_version": 9,
+            "version": original_registry.get("version", 1),
+            "minor_version": original_registry.get("minor_version", 9),
             "key": "core.entity_registry",
             "data": {
                 "entities": entities
             }
         }
+        
+        # Preserve any additional data from original registry
+        if "data" in original_registry:
+            for key, value in original_registry["data"].items():
+                if key != "entities":
+                    entity_registry["data"][key] = value
         
         # Create output directory
         os.makedirs(self.output_dir, exist_ok=True)
@@ -1506,5 +1606,12 @@ class MigrationManagerV2:
                 remote_path = f"{self.client.config_dir}/automations/{file}"
                 self.client.deploy_file(output_path, remote_path)
                 count += 1
+        
+        # Upload customize.yaml if it exists
+        customize_path = f"{self.output_dir}/customize.yaml"
+        if os.path.exists(customize_path):
+            remote_path = f"{self.client.config_dir}/customize.yaml"
+            self.client.deploy_file(customize_path, remote_path)
+            print(f"   ✅ Uploaded customize.yaml with {count} customizations")
         
         return count
