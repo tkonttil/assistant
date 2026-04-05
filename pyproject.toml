@@ -2,7 +2,7 @@
 name = "home-assistant-migration"
 version = "0.1.0"
 description = "Home Assistant Migration and Redesign Tool"
-authors = ["Teijo Konttila <teijo.konttila@gmail.com>"]
+authors = ["Home Assistant Migration Tool <your@email.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

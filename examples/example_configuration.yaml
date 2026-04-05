@@ -1,0 +1,16 @@
+# Example Home Assistant configuration
+# This is a safe example for public distribution
+
+# Loads default set of integrations
+default_config:
+
+# Example automation
+automation:
+  - alias: "Example Automation"
+    trigger:
+      platform: time
+      at: "08:00:00"
+    action:
+      service: notify.persistent_notification
+      data:
+        message: "Good morning!"
