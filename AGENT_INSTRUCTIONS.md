@@ -4,6 +4,13 @@
 
 This document describes the current state of the Home Assistant Migration Tool project after cleanup and organization.
 
+**Latest Updates:**
+- ✅ Makefile-based workflow implemented
+- ✅ Virtual environment support added
+- ✅ Comprehensive cleanup for public release
+- ✅ Area assignment system fixed and working
+- ✅ Docker container management improved
+
 ## 📁 Project Structure
 
 ```
@@ -65,11 +72,20 @@ This document describes the current state of the Home Assistant Migration Tool p
 - Creates current/desired setups
 - Computes and applies migrations
 - Generates output for deployment
+- **NEW**: Proper registry preservation for area assignments
 
 **Supporting Components:**
-- `ssh_client.py`: SSH/Docker container access
+- `ssh_client.py`: SSH/Docker container access (Docker preferred)
 - `storage.py`: Local storage management
 - `models.py`: Data models and structures
+- `simple_migration.py`: Simplified three-step interface
+
+**NEW Scripts:**
+- `scripts/migration_step1_setup.py`: Setup workflow
+- `scripts/migration_step2_compute.py`: Compute migration
+- `scripts/migration_step3_apply.py`: Apply changes
+- `scripts/real_device_area_fix.py`: Fix area assignments
+- `scripts/clean_for_public.py`: Prepare for GitHub upload
 
 ### 2. Utility Scripts (`scripts/`)
 
@@ -85,6 +101,29 @@ Old test scripts, backup files, and documentation moved here for cleanup.
 ## 🚀 Current Workflow
 
 ### Standard Migration Process
+
+**Using Makefile (Recommended):**
+
+1. **Setup** - Download and prepare
+   ```bash
+   make setup
+   ```
+
+2. **Modify** - Edit files in `migration/desired/`
+   - Add/remove areas, devices, entities
+   - Update configuration files
+
+3. **Compute** - Create migration
+   ```bash
+   MIGRATION_NAME="my_migration" DESCRIPTION="My changes" make compute
+   ```
+
+4. **Apply** - Upload to Home Assistant
+   ```bash
+   make apply
+   ```
+
+**Using Python Directly (Advanced):**
 
 1. **Download Current Setup**
    ```bash
@@ -127,6 +166,19 @@ Old test scripts, backup files, and documentation moved here for cleanup.
 - **Docker Integration**: Full container management via SSH client
 - **File Preservation**: All unchanged files preserved during migrations
 - **User-Friendly**: Clear separation between automated and manual steps
+- **Registry Preservation**: Maintains complete registry structure (deleted_devices, etc.)
+- **Makefile Support**: Simplified three-step workflow
+- **Virtual Environment**: Proper .venv integration
+
+### Utility Scripts
+
+The project includes several helpful utility scripts:
+
+- **`scripts/migration_step1_setup.py`**: Step 1 - Download and prepare
+- **`scripts/migration_step2_compute.py`**: Step 2 - Compute migration
+- **`scripts/migration_step3_apply.py`**: Step 3 - Apply changes
+- **`scripts/real_device_area_fix.py`**: Fix area assignments for real devices
+- **`scripts/clean_for_public.py`**: Prepare repository for GitHub upload
 
 ## 📚 Documentation
 
@@ -173,4 +225,18 @@ Old test scripts, backup files, and documentation moved here for cleanup.
 
 ## 🎉 Success!
 
-The project is clean, organized, and ready for production use. All components are working, documentation is updated, and the system is prepared for future development!
+The migration tool is ready to use with its improved Makefile-based workflow. The system has been thoroughly tested and includes:
+
+- ✅ Working area assignment system for real devices
+- ✅ Proper Docker container management
+- ✅ Comprehensive Makefile support
+- ✅ Clean separation of concerns
+- ✅ Ready for public GitHub upload
+
+Start with a fresh Home Assistant container and follow the workflow above to manage your configurations safely and efficiently!
+
+**Recommended first steps:**
+1. `make venv-install` - Set up virtual environment
+2. `make setup` - Download current state
+3. Modify files in `migration/desired/`
+4. `make compute` and `make apply` - Deploy changes
