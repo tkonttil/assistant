@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+.storage/
 build/
 develop-eggs/
 dist/
@@ -60,3 +61,30 @@ poetry.lock
 
 # Windows
 Thumbs.db
+
+# Home Assistant Migration - Temporary Folders
+input/
+output/
+migration/
+
+# Archived/Old Files
+deprecated/
+
+# Python cache and logs
+*.log
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Environment files
+.env
+.env.local
+.env.*
+
+# IDE/Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+applied_migrations

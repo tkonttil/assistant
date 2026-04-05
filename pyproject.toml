@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "home-assistant-migration"
+version = "0.1.0"
+description = "Home Assistant Migration and Redesign Tool"
+authors = ["Home Assistant Migration Tool <your@email.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+HomeAssistant-API = "^5.0.3"
+pydantic = "^2.12.5"
+python-dotenv = "^1.2.2"
+toml = "^0.10.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+
+[build-system]
+requires = ["poetry-core", "setuptools>=61.0.0", "wheel"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools]
+packages = ["home_assistant_migration"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+home_assistant_migration = ["*.py"]
+
+[project.scripts]
+migration-setup = "home_assistant_migration.simple_migration:SimpleMigration.step1_setup"
+migration-compute = "home_assistant_migration.simple_migration:SimpleMigration.step2_compute"
+migration-apply = "home_assistant_migration.simple_migration:SimpleMigration.step3_apply"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+
+[tool.isort]
+profile = "black"
+line_length = 88
